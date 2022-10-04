@@ -5,7 +5,7 @@ local M = {}
 local function terraform_binary()
   local check = vim.fn.systemlist("command -v terraform")
   for _, v in ipairs(check) do
-    if string.match(v, '/usr/bin/terraform') then
+    if string.match(v, 'terraform') then
       return true
     else
       print("Terraform is not installed")
