@@ -7,7 +7,11 @@ local function terraform_binary()
   for _, v in ipairs(check) do
     if string.match(v, '/usr/bin/terraform') then
       return true
+    else
+      print("Terraform is not installed")
+      return false
     end
+
   end
 end
 
@@ -17,6 +21,7 @@ local function get_file_extension()
     return true
   else
     print("Not a terraform file")
+    return false
   end
 end
 
