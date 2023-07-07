@@ -1,6 +1,7 @@
 -- Module definition
 local M = {}
 local Job = require("plenary.job")
+local telescope_state = require("terraform.tf-picker")
 
 -- Finds if the terraform binary is installed in your system
 local function terraform_binary()
@@ -46,10 +47,10 @@ local function terraform_plan()
   vim.api.nvim_buf_set_lines(buf, 0, 0, false, { "Output" })
   for _, v in ipairs(results) do
     local x = vim.json.decode(v)
-    print(vim.inspect(x))
     vim.api.nvim_buf_set_lines(buf, -1, -1, false, { x["@message"] })
   end
 end
+
 -- Executes terraform apply
 local function terraform_apply()
   if terraform_binary() and get_file_extension() then
@@ -63,6 +64,10 @@ end
 
 M.apply = function()
   terraform_apply()
+end
+
+M.state = function()
+  telescope_state()
 end
 
 return M
