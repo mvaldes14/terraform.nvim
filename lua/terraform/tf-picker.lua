@@ -21,11 +21,33 @@ local function get_state()
   return results
 end
 
-local run = function()
+local function find_lnum_in_file(pattern)
+  local current_filename = vim.fn.expand("%:p")
+  local results = {}
+  Job:new({
+    command = "rg",
+    args = { "-In", pattern, current_filename },
+    on_stderr = function(_, data)
+      vim.api.nvim_err_writeln(data)
+    end,
+    on_stdout = function(_, data)
+      vim.api.nvim_out_write(data)
+    end,
+    on_exit = function(j, _)
+      for _, line in ipairs(j:result()) do
+        -- local lnum, text = line:match("(%d+):(.*)")
+        table.insert(results, line)
+      end
+    end,
+  }):sync()
+  return results
+end
+
+local run = function(opts)
   vim.cmd("lcd" .. "~/git/terraform/apps/grafana")
-  vim.print(vim.fn.getcwd())
+  opts = opts or {}
   pickers
-      .new(_, {
+      .new(opts, {
         prompt_title = "Terraform State",
         finder = finders.new_table({
           results = get_state(),
@@ -41,7 +63,7 @@ local run = function()
           actions.select_default:replace(function()
             actions.close(prompt_bufnr)
             local selection = action_state.get_selected_entry()
-            vim.api.nvim_put({ selection.value }, "", false, true)
+            local x = find_lnum_in_file(selection.value)
           end)
           return true
         end,
