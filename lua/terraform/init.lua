@@ -67,7 +67,7 @@ M.apply = function()
 end
 
 M.state = function()
-  telescope_state()
+  telescope_state.run()
 end
 
 return M

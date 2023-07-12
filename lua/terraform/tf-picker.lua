@@ -6,7 +6,9 @@ local actions = require("telescope.actions")
 local action_state = require("telescope.actions.state")
 local previewers = require("telescope.previewers")
 
-local function get_state()
+local M = {}
+
+local get_state = function()
   local results = {}
   Job:new({
     command = "terraform",
@@ -21,22 +23,22 @@ local function get_state()
   return results
 end
 
-local function find_lnum_in_file(pattern)
-  local current_filename = vim.fn.expand("%:p")
+local generate_pattern = function(resource, name)
+  return string.format('"%s" " %s"', resource, name)
+end
+
+local find_lnum_in_file = function(pattern, file)
+  print(pattern, file)
   local results = {}
   Job:new({
-    command = "rg",
-    args = { "-In", pattern, current_filename },
-    on_stderr = function(_, data)
-      vim.api.nvim_err_writeln(data)
-    end,
-    on_stdout = function(_, data)
-      vim.api.nvim_out_write(data)
-    end,
+    command = "grep",
+    args = { "-rn", pattern, file },
     on_exit = function(j, _)
       for _, line in ipairs(j:result()) do
-        -- local lnum, text = line:match("(%d+):(.*)")
-        table.insert(results, line)
+        print(vim.inspect(j:result()))
+        local path, lnum = line:match("(.*):(%d+)")
+        results["lnum"] = lnum
+        results["path"] = path
       end
     end,
   }):sync()
@@ -63,7 +65,11 @@ local run = function(opts)
           actions.select_default:replace(function()
             actions.close(prompt_bufnr)
             local selection = action_state.get_selected_entry()
-            local x = find_lnum_in_file(selection.value)
+            local resource, name = string.match(selection.value, "(.*)%.(.*)")
+            local pattern = generate_pattern(resource, name)
+            local file_meta = find_lnum_in_file(pattern, vim.fn.getcwd())
+            print(vim.inspect(file_meta))
+            -- vim.api.nvim_command("e +" .. lnum .. " " .. )
           end)
           return true
         end,
@@ -71,4 +77,8 @@ local run = function(opts)
       :find()
 end
 
-return run
+M.run = function()
+  run()
+end
+
+return M
