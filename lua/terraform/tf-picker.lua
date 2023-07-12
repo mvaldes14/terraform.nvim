@@ -13,7 +13,6 @@ local get_state = function()
   Job:new({
     command = "terraform",
     args = { "state", "list" },
-    cwd = "~/git/terraform/apps/grafana",
     on_exit = function(j, _)
       for _, line in ipairs(j:result()) do
         table.insert(results, line)
@@ -24,18 +23,17 @@ local get_state = function()
 end
 
 local generate_pattern = function(resource, name)
-  return string.format('"%s" " %s"', resource, name)
+  return string.format('%s" "%s', resource, name)
 end
 
 local find_lnum_in_file = function(pattern, file)
-  print(pattern, file)
+  local quoted_pattern = string.format('"%s"', pattern)
   local results = {}
   Job:new({
     command = "grep",
-    args = { "-rn", pattern, file },
+    args = { "-rn", quoted_pattern, file },
     on_exit = function(j, _)
       for _, line in ipairs(j:result()) do
-        print(vim.inspect(j:result()))
         local path, lnum = line:match("(.*):(%d+)")
         results["lnum"] = lnum
         results["path"] = path
@@ -46,11 +44,10 @@ local find_lnum_in_file = function(pattern, file)
 end
 
 local run = function(opts)
-  vim.cmd("lcd" .. "~/git/terraform/apps/grafana")
   opts = opts or {}
   pickers
       .new(opts, {
-        prompt_title = "Terraform State",
+        prompt_title = "Terraform Resources",
         finder = finders.new_table({
           results = get_state(),
         }),
@@ -59,7 +56,6 @@ local run = function(opts)
           get_command = function(entry)
             return { "terraform", "state", "show", entry.value }
           end,
-          title = "Terraform State",
         }),
         attach_mappings = function(prompt_bufnr, _)
           actions.select_default:replace(function()
@@ -68,8 +64,7 @@ local run = function(opts)
             local resource, name = string.match(selection.value, "(.*)%.(.*)")
             local pattern = generate_pattern(resource, name)
             local file_meta = find_lnum_in_file(pattern, vim.fn.getcwd())
-            print(vim.inspect(file_meta))
-            -- vim.api.nvim_command("e +" .. lnum .. " " .. )
+            vim.api.nvim_command("e +" .. file_meta['lnum'] .. " " .. file_meta['path'])
           end)
           return true
         end,
