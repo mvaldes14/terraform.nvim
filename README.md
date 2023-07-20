@@ -20,11 +20,9 @@ It currently supports 2 commands:
 - `TerraformExplore` => Will inspect your terraform state and open up a telescope window with a list of all your resources.
   ![Explorer](terraform-explore.png)
 
-      - Currently selected resource will show a preview of the resource according to the state, useful to get a quick glance for things like VPCs, Security Groups, etc.
-      ![State Info](terraform-state-info.png)
+- Selected resource will show a preview of the resource according to the state in the telescope previewer window, useful to get a quick glance for things like VPCs, Security Groups, etc.
 
-      - Selecting an item will take you to the resource selected in the right line and file
-      ![State Navigation](terraform-state-resource.png)
+- Selecting an item will take you to the resource selected in the right line and file
 
 # Contributing
 
