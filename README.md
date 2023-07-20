@@ -1,9 +1,29 @@
-# Runs terraform commands on manifests
+# Overview
 
-- Useful to quickly show you the results of the plan in a separate vertical window.
+If you do a lot of terraform manifests and you would like to see quickly the current state of your objects or how the plan would look like, this plugin is for you. 
+
+# Requirements
+- Terraform
+- Plenary
+- Telescope
 
 # Usage
-- In a terraform file, call function :TerraPlan or :TerraApply
+It currently supports 2 commands: 
+- `TerraformPlan` => Will run a plan and show the overall information on a pop up window 
 
-# TODO
-- Prompt for potential undefined variables
+![Plan](terraform-plan.png)
+
+- `TerraformExplore` => Will inspect your terraform state and open up a telescope window with a list of all your resources. 
+![Explorer](terraform-explore.png)
+
+    - Currently selected resource will show a preview of the resource according to the state, useful to get a quick glance for things like VPCs, Security Groups, etc. 
+    ![State Info](terraform-state-info.png)
+
+    - Selecting an item will take you to the resource selected in the right line and file
+    ![State Navigation](terraform-state-resource.png)
+
+# Contributing
+Open to suggestions and enhancements
+
+# License
+See [LICENSE](LICENSE) 

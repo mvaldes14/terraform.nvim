@@ -1,6 +1,6 @@
 -- Module definition
 local M = {}
-local telescope_state = require("terraform.tf-picker")
+local telescope_state = require("terraform.telescope_picker")
 local terraform_plan = require("terraform.actions")
 
 
