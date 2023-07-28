@@ -9,6 +9,18 @@ If you do a lot of terraform manifests, and you would like to see quickly the cu
 - [ Telescope ](https://github.com/nvim-telescope/telescope.nvim)
 - [ Nui ](https://github.com/MunifTanjim/nui.nvim)
 
+# Installation
+Would recommend you install it with Lazy since it can just load the plugin when a terraform file is detected. 
+
+- Lazy
+```
+return {
+  "mvaldes14/terraform.nvim",
+  ft = 'terraform',
+}
+
+```
+
 # Usage
 
 It currently supports 2 commands:
