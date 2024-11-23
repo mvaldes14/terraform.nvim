@@ -1,5 +1,4 @@
 local Popup = require("nui.popup")
-local Job = require("plenary.job")
 local utils = require("terraform.utils")
 
 -- Global Scope so it can be reached
@@ -39,8 +38,17 @@ local function terraform_plan()
     if parsed_msg["@level"] == "error" and init then
       terraform_init()
     end
-    vim.api.nvim_buf_set_lines(popup.bufnr, -1, -1, false, { parsed_msg["@message"] })
+    if parsed_msg["@level"] == "error" then
+      local msg = string.gsub(parsed_msg["diagnostic"]["summary"], "\n", " ")
+      vim.api.nvim_buf_set_lines(popup.bufnr, -1, -1, false,
+        { "Error: " .. msg })
+    end
+    if parsed_msg["@level"] == "info" and not parsed_msg["change"] then
+      vim.api.nvim_buf_set_lines(popup.bufnr, -1, -1, false,
+        { parsed_msg["@message"] })
+    end
     if parsed_msg["change"] then
+      vim.api.nvim_buf_set_lines(popup.bufnr, -1, -1, false, { parsed_msg["@message"] })
       vim.api.nvim_buf_set_lines(popup.bufnr, -1, -1, false, {
         "Resource: "
         .. parsed_msg["change"]["resource"]["resource_name"]
@@ -59,6 +67,7 @@ end
 -- Runs terraform validate and displays output on notification
 local function terraform_validate()
   local job = utils.spawn_job("terraform", { "validate", "-json" })
+  print(vim.inspect(job))
 
   local fixed_table = table.concat(job, "\n")
   local parsed_msg = vim.json.decode(fixed_table, {})
@@ -87,7 +96,10 @@ M.plan = function()
   popup:map("n", "r", function()
     terraform_plan()
   end, { noremap = true })
+  vim.api.nvim_buf_set_option(popup.bufnr, "wrap", true)
+  vim.api.nvim_buf_set_option(popup.bufnr, "ro", true)
 end
+
 
 M.validate = function()
   if not utils.get_file_extension() then
