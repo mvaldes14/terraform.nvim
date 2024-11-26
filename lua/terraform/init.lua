@@ -1,18 +1,24 @@
+local state = require("terraform.picker")
+local action = require("terraform.actions")
+local config = require("terraform.config")
+
 -- Module definition
 local M = {}
-local telescope_state = require("terraform.telescope_picker")
-local terraform_act = require("terraform.actions")
+-- @param opts table
+M.setup = function(opts)
+  vim.tbl_deep_extend('force', { config.opts, opts })
+end
 
 M.plan = function()
-    terraform_act.plan()
+  action.plan()
 end
 
 M.state = function()
-    telescope_state.run()
+  state.run()
 end
 
 M.validate = function()
-    terraform_act.validate()
+  action.validate()
 end
 
 return M
