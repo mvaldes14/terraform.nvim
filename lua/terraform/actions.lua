@@ -1,5 +1,6 @@
 local Popup = require("nui.popup")
 local utils = require("terraform.utils")
+local config = require("terraform.config")
 
 -- Global Scope so it can be reached
 local popup = Popup({
@@ -10,7 +11,7 @@ local popup = Popup({
     text = {
       top = "Terraform Plan",
       top_align = "center",
-      bottom = "<q> Close, <r> Plan",
+      bottom = "<q> Close",
       bottom_align = "center"
     },
   },
@@ -24,14 +25,12 @@ local popup = Popup({
 -- Runs Terraform Init when needed
 local function terraform_init()
   vim.notify("Terraform Init needed, attempting to run it...")
-  local job = utils.spawn_job("terraform", { "init" })
-  print(vim.inspect(job))
+  utils.run_cmd({ config.opts.program, "init" })
 end
 
 -- Runs terraform plan and places output in popup
 local function terraform_plan()
-  local job = utils.spawn_job("terraform", { "plan", "-json" })
-
+  local job = utils.run_cmd({ config.opts.program, "plan", "-json" })
   for _, v in ipairs(job) do
     local parsed_msg = vim.json.decode(v)
     local init, _ = string.match(parsed_msg["@message"], "init")
@@ -93,11 +92,8 @@ M.plan = function()
   popup:map("n", "q", function()
     popup:unmount()
   end, { noremap = true })
-  popup:map("n", "r", function()
-    terraform_plan()
-  end, { noremap = true })
   vim.api.nvim_buf_set_option(popup.bufnr, "wrap", true)
-  vim.api.nvim_buf_set_option(popup.bufnr, "ro", true)
+  vim.api.nvim_buf_set_option(popup.bufnr, "modifiable", false)
 end
 
 

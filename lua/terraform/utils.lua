@@ -1,19 +1,14 @@
-local Job = require("plenary.job")
 local M = {}
 
----@param cmd string
----@param args table
+---@param cmd table
 ---@return table
-function M.spawn_job(cmd, args)
-  local results
-  Job:new({
-    command = cmd,
-    args = args,
-    on_exit = function(j, _)
-      results = j:result()
-    end,
-  }):sync(99999) -- Needs a big number in case your state is huge
-  return results
+function M.run_cmd(cmd)
+  local results = vim.system(cmd, { text = true }):wait()
+  if results.code ~= 0 then
+    error("Error running cmd: " .. results.stderr)
+  end
+  local data = vim.fn.split(results.stdout, "\n")
+  return data
 end
 
 function M.get_file_extension()

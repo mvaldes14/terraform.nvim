@@ -4,7 +4,6 @@ local sorters = require("telescope.sorters")
 local actions = require("telescope.actions")
 local action_state = require("telescope.actions.state")
 local previewers = require("telescope.previewers")
-local run_cmd = require("telescope.utils").get_os_command_output
 local utils = require("terraform.utils")
 local config = require("terraform.config")
 
@@ -22,7 +21,12 @@ end
 local function find_lnum_in_file(pattern, file)
   local cmd = config.opts.cmd
   local quoted_pattern = string.format('"%s"', pattern)
-  local job = utils.spawn_job(cmd, { "-rn", quoted_pattern, file })
+  local job
+  if config.opts.cmd == "grep" then
+    job = utils.run_cmd({ cmd, "-rn", quoted_pattern, file })
+  else
+    job = utils.run_cmd({ cmd, "--line-number", quoted_pattern, file })
+  end
   local results = {}
   for _, line in ipairs(job) do
     local path, lnum = line:match("(.*):(%d+)")
@@ -33,17 +37,12 @@ local function find_lnum_in_file(pattern, file)
 end
 
 function M.run()
-  local results, rc, err = run_cmd({ "terraform", "state", "list" })
-  -- TODO: Find a better way to notify user they don't have their state setup or initialized
-  if rc ~= 0 then
-    print(rc, vim.inspect(err))
-    return
-  end
+  local job = utils.run_cmd({ config.opts.program, "state", "list" })
   pickers
       .new({}, {
         prompt_title = "Terraform Resources",
         finder = finders.new_table({
-          results = results
+          results = job
         }),
         sorter = sorters.get_generic_fuzzy_sorter(),
         previewer = previewers.new_termopen_previewer({
