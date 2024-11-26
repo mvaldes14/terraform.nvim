@@ -65,13 +65,11 @@ end
 
 -- Runs terraform validate and displays output on notification
 local function terraform_validate()
-  local job = utils.spawn_job("terraform", { "validate", "-json" })
-  print(vim.inspect(job))
-
-  local fixed_table = table.concat(job, "\n")
-  local parsed_msg = vim.json.decode(fixed_table, {})
+  local job = utils.run_cmd({ "terraform", "validate", "-json" })
+  local job_string = table.concat(job, "\n")
+  local parsed_msg = vim.json.decode(job_string, { object = true, array = true })
   if parsed_msg["valid"] then
-    vim.notify("Terraform is valid")
+    vim.notify("Terraform file is valid")
   else
     vim.notify("There are " .. parsed_msg["error_count"] .. " error(s) in your file")
   end
@@ -101,7 +99,6 @@ M.validate = function()
   if not utils.get_file_extension() then
     return
   end
-  utils.change_cwd()
   terraform_validate()
 end
 

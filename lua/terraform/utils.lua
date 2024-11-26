@@ -4,9 +4,6 @@ local M = {}
 ---@return table
 function M.run_cmd(cmd)
   local results = vim.system(cmd, { text = true }):wait()
-  if results.code ~= 0 then
-    error("Error running cmd: " .. results.stderr)
-  end
   local data = vim.fn.split(results.stdout, "\n")
   return data
 end
