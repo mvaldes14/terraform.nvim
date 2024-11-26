@@ -26,6 +26,10 @@ return {
 }
 ```
 
+Validate your installation is ready by running :checkhealth terraform
+- It will validate that terraform is installed
+- Will check if you have either grep or rg
+
 # Usage
 
 It currently supports 3 commands:
