@@ -45,7 +45,6 @@ M.create_float = function()
         footer_pos = "center",
     })
     vim.api.nvim_buf_set_option(buf, "wrap", true)
-    vim.api.nvim_buf_set_option(buf, "modifiable", false)
 
     vim.keymap.set("n", "q", function()
         if vim.api.nvim_win_is_valid(win) then
