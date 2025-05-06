@@ -6,19 +6,23 @@ local config = require("terraform.config")
 local M = {}
 -- @param opts table
 M.setup = function(opts)
-  vim.tbl_deep_extend('force', config.opts, opts)
+    vim.tbl_deep_extend("force", config.opts, opts)
 end
 
 M.plan = function()
-  action.plan()
+    action.plan()
 end
 
 M.state = function()
-  state.run()
+    state.run()
 end
 
 M.validate = function()
-  action.validate()
+    action.validate()
+end
+
+M.init = function()
+    action.init()
 end
 
 return M

@@ -1,105 +1,71 @@
-local Popup = require("nui.popup")
 local utils = require("terraform.utils")
 local config = require("terraform.config")
-
--- Global Scope so it can be reached
-local popup = Popup({
-  enter = true,
-  focusable = true,
-  border = {
-    style = "rounded",
-    text = {
-      top = "Terraform Plan",
-      top_align = "center",
-      bottom = "<q> Close",
-      bottom_align = "center"
-    },
-  },
-  position = "50%",
-  size = {
-    width = "80%",
-    height = "80%",
-  },
-})
+local ui = require("terraform.ui")
 
 -- Runs Terraform Init when needed
 local function terraform_init()
-  vim.notify("Terraform Init needed, attempting to run it...")
-  utils.run_cmd({ config.opts.program, "init" })
+    local output = {}
+    local job = utils.run_cmd({ config.opts.program, "init" })
+    utils.clean_output(job, output)
+    return output
 end
 
 -- Runs terraform plan and places output in popup
+---@return table: output of the command
 local function terraform_plan()
-  local job = utils.run_cmd({ config.opts.program, "plan", "-json" })
-  for _, v in ipairs(job) do
-    local parsed_msg = vim.json.decode(v)
-    local init, _ = string.match(parsed_msg["@message"], "init")
-    if parsed_msg["@level"] == "error" and init then
-      terraform_init()
-    end
-    if parsed_msg["@level"] == "error" then
-      local msg = string.gsub(parsed_msg["diagnostic"]["summary"], "\n", " ")
-      vim.api.nvim_buf_set_lines(popup.bufnr, -1, -1, false,
-        { "Error: " .. msg })
-    end
-    if parsed_msg["@level"] == "info" and not parsed_msg["change"] then
-      vim.api.nvim_buf_set_lines(popup.bufnr, -1, -1, false,
-        { parsed_msg["@message"] })
-    end
-    if parsed_msg["change"] then
-      vim.api.nvim_buf_set_lines(popup.bufnr, -1, -1, false, { parsed_msg["@message"] })
-      vim.api.nvim_buf_set_lines(popup.bufnr, -1, -1, false, {
-        "Resource: "
-        .. parsed_msg["change"]["resource"]["resource_name"]
-        .. ", address: "
-        .. parsed_msg["change"]["resource"]["resource"]
-        .. ", action: "
-        .. parsed_msg["change"]["action"],
-      })
-      if parsed_msg["change"]["reason"] then
-        vim.api.nvim_buf_set_lines(popup.bufnr, -1, -1, false, { "Reason: " .. parsed_msg["change"]["reason"] })
-      end
-    end
-  end
+    local output = {}
+    local job = utils.run_cmd({ config.opts.program, "plan" })
+    utils.clean_output(job, output)
+    return output
 end
 
 -- Runs terraform validate and displays output on notification
 local function terraform_validate()
-  local job = utils.run_cmd({ "terraform", "validate", "-json" })
-  local job_string = table.concat(job, "\n")
-  local parsed_msg = vim.json.decode(job_string, { object = true, array = true })
-  if parsed_msg["valid"] then
-    vim.notify("Terraform file is valid")
-  else
-    vim.notify("There are " .. parsed_msg["error_count"] .. " error(s) in your file")
-  end
+    local job = utils.run_cmd({ "terraform", "validate", "-json" })
+    local job_string = table.concat(job.out, "\n")
+    local parsed_msg = vim.json.decode(job_string, { object = true, array = true })
+    if parsed_msg["valid"] then
+        vim.notify("Terraform file is valid")
+    else
+        local errors = {}
+        for _, v in ipairs(parsed_msg["diagnostics"]) do
+            local e = vim.tbl_get(v, "detail")
+            table.insert(errors, e .. "\n")
+        end
+        local error_count = vim.tbl_get(parsed_msg, "error_count")
+        local error_msg = table.concat(errors, "")
+        local msg = "There are " .. error_count .. " error(s) in your file(s)" .. "\n" .. error_msg
+        vim.notify(msg, vim.log.levels.ERROR)
+    end
 end
 
 local M = {}
 
-M.plan = function()
-  if not utils.get_file_extension() then
-    return
-  end
-  utils.change_cwd()
-  -- opens popup
-  popup:mount()
-  -- runs tf plan
-  terraform_plan()
-  -- quit popup on Q
-  popup:map("n", "q", function()
-    popup:unmount()
-  end, { noremap = true })
-  vim.api.nvim_buf_set_option(popup.bufnr, "wrap", true)
-  vim.api.nvim_buf_set_option(popup.bufnr, "modifiable", false)
+M.init = function()
+    if not utils.get_file_extension() then
+        return
+    end
+    utils.change_cwd()
+    local init = terraform_init()
+    local float = ui.popup()
+    vim.api.nvim_buf_set_lines(float.buf, 0, -1, false, init)
 end
 
+M.plan = function()
+    if not utils.get_file_extension() then
+        return
+    end
+    utils.change_cwd()
+    local plan = terraform_plan()
+    local float = ui.popup()
+    vim.api.nvim_buf_set_lines(float.buf, 0, -1, false, plan)
+end
 
 M.validate = function()
-  if not utils.get_file_extension() then
-    return
-  end
-  terraform_validate()
+    if not utils.get_file_extension() then
+        return
+    end
+    terraform_validate()
 end
 
 return M
