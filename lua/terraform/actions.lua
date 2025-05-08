@@ -1,12 +1,22 @@
 local utils = require("terraform.utils")
 local config = require("terraform.config")
 local ui = require("terraform.ui")
+local M = {}
 
--- Runs Terraform Init when needed
+-- Runs Terraform Init
 local function terraform_init()
     vim.notify("Running terraform init", vim.log.levels.INFO)
     local output = {}
     local job = utils.run_cmd({ config.opts.program, "init" })
+    utils.clean_output(job, output)
+    return output
+end
+
+-- Runs Terraform Apply
+local function terraform_apply()
+    vim.notify("Running terraform apply", vim.log.levels.INFO)
+    local output = {}
+    local job = utils.run_cmd({ config.opts.program, "apply", "-auto-approve" })
     utils.clean_output(job, output)
     return output
 end
@@ -41,9 +51,17 @@ local function terraform_validate()
     end
 end
 
-local M = {}
-
 M.init = function()
+    if not utils.get_file_extension() then
+        return
+    end
+    utils.change_cwd()
+    local init = terraform_init()
+    local float = ui.popup()
+    vim.api.nvim_buf_set_lines(float.buf, 0, -1, false, init)
+end
+
+M.apply = function()
     if not utils.get_file_extension() then
         return
     end
@@ -61,6 +79,32 @@ M.plan = function()
     local plan = terraform_plan()
     local float = ui.popup()
     vim.api.nvim_buf_set_lines(float.buf, 0, -1, false, plan)
+    vim.keymap.set({ "n" }, "p", function()
+        if vim.api.nvim_buf_is_valid(float.buf) then
+            -- Clear buffer to re-run
+            vim.api.nvim_buf_set_lines(float.buf, 0, -1, false, {})
+            vim.api.nvim_buf_set_lines(float.buf, 0, -1, false, plan)
+        end
+    end, { buffer = float.buf })
+    vim.keymap.set({ "n" }, "a", function()
+        if vim.api.nvim_buf_is_valid(float.buf) then
+            vim.ui.input({
+                prompt = "Are you sure you want to apply the plan? (yes/no): ",
+                default = "no",
+            }, function(input)
+                if input == "yes" then
+                    -- Clear buffer to re-run
+                    vim.api.nvim_buf_set_lines(float.buf, 0, -1, false, {})
+                    local apply = terraform_apply()
+                    vim.api.nvim_buf_set_lines(float.buf, 0, -1, false, apply)
+                else
+                    vim.notify("Aborting terraform apply", vim.log.levels.WARN)
+                    vim.api.nvim_win_close(float.win, true)
+                    return
+                end
+            end)
+        end
+    end, { buffer = float.buf })
 end
 
 M.validate = function()

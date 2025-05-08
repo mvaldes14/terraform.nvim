@@ -15,7 +15,7 @@ M.popup = function()
         title = "Terraform Plan",
         title_pos = "center",
         border = "rounded",
-        footer = "<q> Close",
+        footer = "<q> Close, <p> Plan, <a> Apply",
         footer_pos = "center",
     }
     local buf = vim.api.nvim_create_buf(false, true)
