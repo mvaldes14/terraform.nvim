@@ -5,7 +5,6 @@ local M = {}
 
 -- Runs Terraform Init
 local function terraform_init()
-    vim.notify("Running terraform init", vim.log.levels.INFO)
     local output = {}
     local job = utils.run_cmd({ config.opts.program, "init" })
     utils.clean_output(job, output)
@@ -14,7 +13,6 @@ end
 
 -- Runs Terraform Apply
 local function terraform_apply()
-    vim.notify("Running terraform apply", vim.log.levels.INFO)
     local output = {}
     local job = utils.run_cmd({ config.opts.program, "apply", "-auto-approve" })
     utils.clean_output(job, output)
@@ -24,7 +22,6 @@ end
 -- Runs terraform plan and places output in popup
 ---@return table: output of the command
 local function terraform_plan()
-    vim.notify("Running terraform plan", vim.log.levels.INFO)
     local output = {}
     local job = utils.run_cmd({ config.opts.program, "plan" })
     utils.clean_output(job, output)
@@ -52,16 +49,6 @@ local function terraform_validate()
 end
 
 M.init = function()
-    if not utils.get_file_extension() then
-        return
-    end
-    utils.change_cwd()
-    local init = terraform_init()
-    local float = ui.popup()
-    vim.api.nvim_buf_set_lines(float.buf, 0, -1, false, init)
-end
-
-M.apply = function()
     if not utils.get_file_extension() then
         return
     end
