@@ -4,6 +4,7 @@ local ui = require("terraform.ui")
 
 -- Runs Terraform Init when needed
 local function terraform_init()
+    vim.notify("Running terraform init", vim.log.levels.INFO)
     local output = {}
     local job = utils.run_cmd({ config.opts.program, "init" })
     utils.clean_output(job, output)
@@ -13,6 +14,7 @@ end
 -- Runs terraform plan and places output in popup
 ---@return table: output of the command
 local function terraform_plan()
+    vim.notify("Running terraform plan", vim.log.levels.INFO)
     local output = {}
     local job = utils.run_cmd({ config.opts.program, "plan" })
     utils.clean_output(job, output)

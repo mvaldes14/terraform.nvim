@@ -36,7 +36,6 @@ local function find_lnum_in_file(pattern, file)
     return results
 end
 
---TODO: Fix this, the new run_cmd is returning a table so it wont take you there
 function M.run()
     local job = utils.run_cmd({ config.opts.program, "state", "list" })
     pickers
