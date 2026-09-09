@@ -1,68 +1,51 @@
-local pickers = require("telescope.pickers")
-local finders = require("telescope.finders")
-local sorters = require("telescope.sorters")
-local actions = require("telescope.actions")
-local action_state = require("telescope.actions.state")
-local previewers = require("telescope.previewers")
-local utils = require("terraform.utils")
 local config = require("terraform.config")
+local utils = require("terraform.utils")
 
 local M = {}
 
----@param resource any
----@param name any
----@return string
-local function generate_pattern(resource, name)
-    return string.format('%s" "%s', resource, name)
+local function find_resource_declaration(address)
+  local resource_type, name = address:match("([%w_%-]+)%.([%w_%-]+)$")
+  if not resource_type or not name then
+    return nil
+  end
+
+  for _, file in ipairs(vim.fn.globpath(vim.fn.getcwd(), "**/*.tf", true, true)) do
+    local declaration = string.format('resource "%s" "%s"', resource_type, name)
+    for lnum, line in ipairs(vim.fn.readfile(file)) do
+      if line:find(declaration, 1, true) then
+        return file, lnum
+      end
+    end
+  end
 end
 
----@param pattern string
----@param file string
-local function find_lnum_in_file(pattern, file)
-    local cmd = config.opts.cmd
-    local quoted_pattern = string.format('"%s"', pattern)
-    local job
-    if config.opts.cmd == "grep" then
-        job = utils.run_cmd({ cmd, "-rn", quoted_pattern, file })
-    else
-        job = utils.run_cmd({ cmd, "--line-number", quoted_pattern, file })
-    end
-    local results = {}
-    for _, line in ipairs(job.out) do
-        local path, lnum = line:match("(.*):(%d+)")
-        results["lnum"] = lnum
-        results["path"] = path
-    end
-    return results
+local function open_resource_declaration(address)
+  local file, lnum = find_resource_declaration(address)
+  if not file then
+    vim.notify("Terraform resource declaration was not found", vim.log.levels.WARN)
+    return
+  end
+  vim.cmd("edit " .. vim.fn.fnameescape(file))
+  vim.api.nvim_win_set_cursor(0, { lnum, 0 })
 end
 
 function M.run()
-    local job = utils.run_cmd({ config.opts.program, "state", "list" })
-    pickers
-        .new({}, {
-            prompt_title = "Terraform Resources",
-            finder = finders.new_table({
-                results = job.out,
-            }),
-            sorter = sorters.get_generic_fuzzy_sorter(),
-            previewer = previewers.new_termopen_previewer({
-                get_command = function(entry)
-                    return { "terraform", "state", "show", entry.value }
-                end,
-            }),
-            attach_mappings = function(prompt_bufnr, _)
-                actions.select_default:replace(function()
-                    actions.close(prompt_bufnr)
-                    local selection = action_state.get_selected_entry()
-                    local resource, name = string.match(selection.value, "(.*)%.(.*)")
-                    local pattern = generate_pattern(resource, name)
-                    local file_meta = find_lnum_in_file(pattern, vim.fn.getcwd())
-                    vim.api.nvim_command("e +" .. file_meta["lnum"] .. " " .. file_meta["path"])
-                end)
-                return true
-            end,
-        })
-        :find()
+  local job = utils.run_cmd({ config.opts.program, "state", "list" })
+  local resources = vim.tbl_filter(function(resource)
+    return resource ~= ""
+  end, job.out)
+  if #resources == 0 then
+    vim.notify("Terraform state contains no resources", vim.log.levels.INFO)
+    return
+  end
+
+  vim.ui.select(resources, {
+    prompt = "Terraform Resources",
+  }, function(selection)
+    if selection then
+      open_resource_declaration(selection)
+    end
+  end)
 end
 
 return M

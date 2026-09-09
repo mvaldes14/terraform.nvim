@@ -1,52 +1,71 @@
-# Overview
+# terraform.nvim
 
-If you do a lot of terraform manifests, and you would like to see quickly the current state of your objects or how the plan would look like, this plugin is for you.
+`terraform.nvim` is a Neovim interface for inspecting Terraform state, running plans, and applying changes without leaving the editor.
 
-# Requirements
+![Terraform plan output in a floating Neovim window](terraform-plan.png)
 
-- [ Terraform ](https://developer.hashicorp.com/terraform/downloads)
-- [ Plenary ](https://github.com/nvim-lua/plenary.nvim)
-- [ Telescope ](https://github.com/nvim-telescope/telescope.nvim)
-- [ Nui ](https://github.com/MunifTanjim/nui.nvim)
-- Ripgrep or grep
+## Requirements
 
+- [Terraform](https://developer.hashicorp.com/terraform/downloads) or OpenTofu
+- Neovim with `vim.system` support (0.10+)
 
-# Installation
-Would recommend you install it with Lazy since it can just load the plugin when a terraform file is detected. 
+## Installation
 
-- Lazy
-```
+The plugin can be lazy-loaded for Terraform files:
+
+```lua
 return {
   "mvaldes14/terraform.nvim",
-  ft = 'terraform',
+  ft = "terraform",
   opts = {
-    cmd = "grep" -- Options: grep or rg
-    program = "terraform" -- Options: terraform or opentofu
+    program = "terraform", -- or "tofu"
+  },
+}
+```
+
+No Telescope, Plenary, Nui, grep, or ripgrep dependency is required.
+
+Validate the installation with `:checkhealth terraform`.
+
+## Usage
+
+### `:TerraformPlan`
+
+Runs `terraform plan` in a floating window. The window opens immediately with a running indicator and receives stdout and stderr as Terraform produces it. When the command completes, the title and status line are updated.
+
+Within the plan window:
+
+- `p` runs a new plan.
+- `a` confirms and runs `terraform apply -auto-approve`; apply output is streamed into the same window.
+- `q` closes the window.
+
+### `:TerraformExplore`
+
+Lists state resources with Neovim's native `vim.ui.select` interface. Selecting a resource opens its declaration in the current Terraform project.
+
+![Terraform resource explorer](terraform-explore.png)
+
+### `:TerraformDocs`
+
+Opens the official Terraform Registry documentation for the resource under the cursor. It accepts a resource declaration such as `resource "aws_instance" "web"` or an address such as `aws_instance.web`.
+
+For reliable provider resolution, declare the provider source in `required_providers`:
+
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+    }
   }
 }
 ```
 
-Validate your installation is ready by running :checkhealth terraform
-- It will validate that terraform is installed
-- Will check if you have either grep or rg
+If the resource type is invalid or its provider source cannot be found, the command shows a warning instead of opening an unrelated page.
 
-# Usage
+### `:TerraformValidate`
 
-It currently supports 3 commands:
-
-- `TerraformPlan` => Will run a plan and show the overall information on a pop-up window
-
-![Plan](terraform-plan.png)
-
-- `TerraformExplore` => Will inspect your terraform state and open up a telescope window with a list of all your resources.
-  ![Explorer](terraform-explore.png)
-
-- Selected resource will show a preview of the resource according to the state in the telescope previewer window, useful to get a quick glance for things like VPCs, Security Groups, etc.
-
-- Selecting an item will take you to the resource selected in the right line and file
-
-- `TerraformValidate` => Will run terraform validate in your current file and notify you if there are problems.
-**NOTE:** This last command is best used as an event after a save on your buffer, which can be done with:
+Runs `terraform validate -json` and reports validation failures through Neovim notifications. It is useful from a save autocmd:
 
 ```lua
 vim.api.nvim_create_autocmd("BufWritePost", {
@@ -57,10 +76,14 @@ vim.api.nvim_create_autocmd("BufWritePost", {
 })
 ```
 
-# Contributing
+### `:TerraformInit`
 
-Open to suggestions and enhancements
+Runs `terraform init` and displays its output in a floating window.
 
-# License
+## Contributing
 
-See [LICENSE](LICENSE)
+Suggestions and enhancements are welcome.
+
+## License
+
+See [LICENSE](LICENSE).
