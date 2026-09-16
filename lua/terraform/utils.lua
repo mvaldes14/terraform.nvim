@@ -24,16 +24,20 @@ function M.change_cwd()
     vim.fn.execute("lcd " .. cwd)
 end
 
+function M.strip_ansi(value)
+    return value:gsub("\27%[[0-?]*[ -/]*[@-~]", "")
+end
+
 function M.clean_output(job_result, output_result)
     if job_result.err then
         for i in ipairs(job_result.err) do
-            local clean = string.gsub(job_result.err[i], "\27%[?[0-9;]*m", "")
+            local clean = M.strip_ansi(job_result.err[i])
             table.insert(output_result, clean)
         end
     end
     for i in ipairs(job_result.out) do
         if i ~= "" then
-            local clean = string.gsub(job_result.out[i], "\27%[?[0-9;]*m", "")
+            local clean = M.strip_ansi(job_result.out[i])
             table.insert(output_result, clean)
         end
     end

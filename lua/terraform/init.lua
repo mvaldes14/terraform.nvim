@@ -1,4 +1,3 @@
-local state = require("terraform.picker")
 local action = require("terraform.actions")
 local config = require("terraform.config")
 
@@ -13,12 +12,16 @@ M.plan = function()
     action.plan()
 end
 
-M.state = function()
-    state.run()
+M.find = function()
+    require("terraform.picker").run()
 end
 
 M.validate = function()
     action.validate()
+end
+
+M.docs = function()
+    action.docs()
 end
 
 M.init = function()
