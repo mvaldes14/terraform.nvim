@@ -232,6 +232,7 @@ M.validate = function()
     if not utils.get_file_extension() then
         return
     end
+    utils.change_cwd()
     terraform_validate()
 end
 
