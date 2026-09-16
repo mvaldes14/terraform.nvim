@@ -33,10 +33,7 @@ It currently supports 5 commands:
 
 - `TerraformPlan` => Will run a plan and show the overall information on a pop-up window
 
-![Plan](terraform-plan.png)
-
 - `TerraformFind` => Will inspect your terraform state and open a selector with all Terraform elements present in state.
-  ![Find](terraform-explore.png)
 
 - Selecting an item will take you to the selected Terraform element in the right line and file
 
