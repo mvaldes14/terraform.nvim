@@ -244,17 +244,15 @@ M.plan = function()
     vim.keymap.set({ "n" }, "a", function()
         if vim.api.nvim_buf_is_valid(float.buf) then
             vim.ui.input({
-                prompt = "Are you sure you want to apply the plan? (yes/no): ",
-                default = "no",
+                prompt = "Type 'yes' to apply the plan: ",
             }, function(input)
-                if input == "yes" then
-                    clear_lines(float.buf)
-                    terraform_apply(float.buf)
-                else
-                    vim.notify("Aborting terraform apply", vim.log.levels.WARN)
-                    vim.api.nvim_win_close(float.win, true)
+                if input ~= "yes" then
+                    vim.notify("Apply aborted", vim.log.levels.WARN)
                     return
                 end
+
+                clear_lines(float.buf)
+                terraform_apply(float.buf)
             end)
         end
     end, { buffer = float.buf })
