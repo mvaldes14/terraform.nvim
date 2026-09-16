@@ -38,7 +38,15 @@ local function clear_lines(buf)
 end
 
 local function run_terraform(buf, args, label)
-    append_lines(buf, "Running " .. config.opts.program .. " " .. label .. "...")
+    local display_args = {}
+    for _, arg in ipairs(args) do
+        if arg ~= "-no-color" then
+            table.insert(display_args, arg)
+        end
+    end
+    local command = config.opts.program .. " " .. table.concat(display_args, " ")
+
+    append_lines(buf, "Running: " .. command)
     vim.system(vim.list_extend({ config.opts.program }, args), {
         text = true,
         stdout = function(_, data)
@@ -50,9 +58,9 @@ local function run_terraform(buf, args, label)
     }, function(result)
         append_lines(buf, "")
         if result.code == 0 then
-            append_lines(buf, "terraform " .. label .. " completed")
+            append_lines(buf, "Done: " .. config.opts.program .. " " .. label)
         else
-            append_lines(buf, "terraform " .. label .. " failed with exit code " .. result.code)
+            append_lines(buf, "Failed: " .. config.opts.program .. " " .. label .. " exited with code " .. result.code)
         end
     end)
 end
@@ -225,7 +233,7 @@ M.plan = function()
         return
     end
     utils.change_cwd()
-    local float = ui.popup({ title = "Terraform Plan", footer = "<q> Close, <p> Plan, <a> Apply" })
+    local float = ui.popup({ title = "Terraform Plan", footer = "q close • p plan • a apply" })
     terraform_plan(float.buf)
     vim.keymap.set({ "n" }, "p", function()
         if vim.api.nvim_buf_is_valid(float.buf) then
