@@ -72,13 +72,32 @@ local function terraform_plan(buf)
     run_terraform(buf, { "plan", "-no-color" }, "plan")
 end
 
+local function format_validate_diagnostics(diagnostics)
+    local lines = {}
+    for _, diagnostic in ipairs(diagnostics or {}) do
+        local severity = diagnostic.severity or "diagnostic"
+        local summary = diagnostic.summary or "Terraform diagnostic"
+        local location = ""
+        local range = diagnostic.range
+        if range and range.filename and range.start and range.start.line then
+            location = " (" .. range.filename .. ":" .. range.start.line .. ")"
+        end
+
+        table.insert(lines, severity:gsub("^%l", string.upper) .. ": " .. summary .. location)
+        if diagnostic.detail and diagnostic.detail ~= "" then
+            table.insert(lines, diagnostic.detail)
+        end
+    end
+    return table.concat(lines, "\n\n")
+end
+
 -- Runs terraform validate and displays output on notification
 local function terraform_validate()
     local job = utils.run_cmd({ config.opts.program, "validate", "-json", "-no-color" })
     local job_string = vim.trim(table.concat(job.out, "\n"))
     if job_string == "" then
         local err = vim.trim(table.concat(job.err or {}, "\n"))
-        vim.notify(err ~= "" and err or "Terraform validate did not return JSON output", vim.log.levels.ERROR)
+        vim.notify(err ~= "" and err or "Terraform validate: no JSON output", vim.log.levels.ERROR)
         return
     end
 
@@ -86,23 +105,28 @@ local function terraform_validate()
     if not ok then
         local err = vim.trim(table.concat(job.err or {}, "\n"))
         local msg = err ~= "" and err or job_string
-        vim.notify("Unable to parse terraform validate output:\n" .. msg, vim.log.levels.ERROR)
+        vim.notify("Terraform validate: unable to parse output\n" .. msg, vim.log.levels.ERROR)
         return
     end
 
-    if parsed_msg["valid"] then
-        vim.notify("Terraform file is valid")
-    else
-        local errors = {}
-        for _, v in ipairs(parsed_msg["diagnostics"] or {}) do
-            local e = vim.tbl_get(v, "detail")
-            if e then
-                table.insert(errors, e .. "\n")
-            end
+    local error_count = parsed_msg.error_count or 0
+    local warning_count = parsed_msg.warning_count or 0
+    local diagnostics = format_validate_diagnostics(parsed_msg.diagnostics)
+
+    if parsed_msg.valid then
+        if warning_count > 0 then
+            vim.notify("Terraform validate: valid with " .. warning_count .. " warning(s)\n" .. diagnostics, vim.log.levels.WARN)
+        else
+            vim.notify("Terraform validate: valid")
         end
-        local error_count = vim.tbl_get(parsed_msg, "error_count") or #errors
-        local error_msg = table.concat(errors, "")
-        local msg = "There are " .. error_count .. " error(s) in your file(s)" .. "\n" .. error_msg
+    else
+        local msg = "Terraform validate: failed with " .. error_count .. " error(s)"
+        if warning_count > 0 then
+            msg = msg .. " and " .. warning_count .. " warning(s)"
+        end
+        if diagnostics ~= "" then
+            msg = msg .. "\n" .. diagnostics
+        end
         vim.notify(msg, vim.log.levels.ERROR)
     end
 end
