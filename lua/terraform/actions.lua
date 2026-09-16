@@ -74,18 +74,33 @@ end
 
 -- Runs terraform validate and displays output on notification
 local function terraform_validate()
-    local job = utils.run_cmd({ config.opts.program, "validate", "-json" })
-    local job_string = table.concat(job.out, "\n")
-    local parsed_msg = vim.json.decode(job_string, { object = true, array = true })
+    local job = utils.run_cmd({ config.opts.program, "validate", "-json", "-no-color" })
+    local job_string = vim.trim(table.concat(job.out, "\n"))
+    if job_string == "" then
+        local err = vim.trim(table.concat(job.err or {}, "\n"))
+        vim.notify(err ~= "" and err or "Terraform validate did not return JSON output", vim.log.levels.ERROR)
+        return
+    end
+
+    local ok, parsed_msg = pcall(vim.json.decode, job_string, { object = true, array = true })
+    if not ok then
+        local err = vim.trim(table.concat(job.err or {}, "\n"))
+        local msg = err ~= "" and err or job_string
+        vim.notify("Unable to parse terraform validate output:\n" .. msg, vim.log.levels.ERROR)
+        return
+    end
+
     if parsed_msg["valid"] then
         vim.notify("Terraform file is valid")
     else
         local errors = {}
-        for _, v in ipairs(parsed_msg["diagnostics"]) do
+        for _, v in ipairs(parsed_msg["diagnostics"] or {}) do
             local e = vim.tbl_get(v, "detail")
-            table.insert(errors, e .. "\n")
+            if e then
+                table.insert(errors, e .. "\n")
+            end
         end
-        local error_count = vim.tbl_get(parsed_msg, "error_count")
+        local error_count = vim.tbl_get(parsed_msg, "error_count") or #errors
         local error_msg = table.concat(errors, "")
         local msg = "There are " .. error_count .. " error(s) in your file(s)" .. "\n" .. error_msg
         vim.notify(msg, vim.log.levels.ERROR)
