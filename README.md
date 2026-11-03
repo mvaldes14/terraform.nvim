@@ -1,67 +1,68 @@
-# Overview
+# terraform.nvim
 
-If you do a lot of terraform manifests, and you would like to see quickly the current state of your objects or how the plan would look like, this plugin is for you.
+Plan, inspect, and navigate Terraform infrastructure without leaving Neovim.
 
-# Requirements
+terraform.nvim brings common Terraform workflows into your editor: preview changes, browse resources in state, validate configurations, initialize a working directory, and open Terraform Registry documentation.
 
-- [ Terraform ](https://developer.hashicorp.com/terraform/downloads)
-- Ripgrep or grep
+## Requirements
 
+- [Terraform](https://developer.hashicorp.com/terraform/downloads) or [OpenTofu](https://opentofu.org/)
+- [ripgrep](https://github.com/BurntSushi/ripgrep) (`rg`) or `grep`
 
-# Installation
-Would recommend you install it with Lazy since it can just load the plugin when a terraform file is detected. 
+Run `:checkhealth terraform` after installation to check the Terraform executable and search utility.
 
-- Lazy
-```
+## Installation
+
+With [lazy.nvim](https://github.com/folke/lazy.nvim), you can load the plugin when opening a Terraform file:
+
+```lua
 return {
   "mvaldes14/terraform.nvim",
-  ft = 'terraform',
+  ft = "terraform",
   opts = {
-    cmd = "grep" -- Options: grep or rg
-    program = "terraform" -- Options: terraform or opentofu
-  }
+    cmd = "grep",          -- "grep" or "rg"
+    program = "terraform", -- "terraform" or "opentofu"
+  },
 }
 ```
 
-Validate your installation is ready by running :checkhealth terraform
-- It will validate that terraform is installed
-- Will check if you have either grep or rg
+Choose `program = "opentofu"` if you use OpenTofu. Set `cmd = "rg"` to use ripgrep instead of grep.
 
-# Usage
+## Commands
 
-It currently supports 5 commands:
+| Command | What it does |
+| --- | --- |
+| `:TerraformPlan` | Run a plan and display its summary in a popup. |
+| `:TerraformFind` | Browse resources from Terraform state and jump to the matching definition in your files. |
+| `:TerraformValidate` | Run `terraform validate` and show validation feedback. |
+| `:TerraformInit` | Run `terraform init` and display its output in a popup. |
+| `:TerraformDocs` | Open Terraform Registry documentation for the resource, data source, or provider block under the cursor. |
 
-- `TerraformPlan` => Will run a plan and show the overall information on a pop-up window
+### Validate on save (optional)
 
-- `TerraformFind` => Will inspect your terraform state and open a selector with all Terraform elements present in state.
-
-- Selecting an item will take you to the selected Terraform element in the right line and file
-
-- `TerraformValidate` => Will run terraform validate in your current file and notify you if there are problems.
-
-- `TerraformInit` => Will run terraform init and show the output in a pop-up window.
-
-- `TerraformDocs` => Will open Terraform Registry documentation for the resource, data source, or provider block under the cursor.
-
-**NOTE:** TerraformValidate is best used as an event after a save on your buffer, which can be done with:
+If you'd like to validate whenever you save a Terraform file, add this autocommand to your Neovim configuration:
 
 ```lua
 vim.api.nvim_create_autocmd("BufWritePost", {
-  pattern = { "*.tf" },
+  pattern = "*.tf",
   callback = function()
     vim.cmd("TerraformValidate")
   end,
 })
 ```
 
-## Suggested keymaps
+### Suggested keymaps (optional)
 
 ```lua
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "terraform",
   callback = function()
     local map = function(lhs, rhs, desc)
-      vim.keymap.set("n", lhs, rhs, { buffer = 0, desc = "[Tf] " .. desc, silent = true })
+      vim.keymap.set("n", lhs, rhs, {
+        buffer = 0,
+        desc = "[Tf] " .. desc,
+        silent = true,
+      })
     end
 
     map("<leader>tp", "<cmd>TerraformPlan<cr>", "Plan")
@@ -72,10 +73,16 @@ vim.api.nvim_create_autocmd("FileType", {
 })
 ```
 
-# Contributing
+## Troubleshooting
 
-Open to suggestions and enhancements
+- **A command cannot find Terraform or OpenTofu:** Check that the chosen executable is installed and on your `PATH`, and that `program` matches it.
+- **Resource browsing returns no results:** Check that you're working in the intended Terraform directory and that its state contains resources.
+- **Setup checks fail:** Run `:checkhealth terraform` and confirm that `grep` or `rg` is available.
 
-# License
+## Contributing
 
-See [LICENSE](LICENSE)
+Bug reports, suggestions, and pull requests are welcome. Please include reproduction steps when reporting an issue.
+
+## License
+
+See [LICENSE](LICENSE).
